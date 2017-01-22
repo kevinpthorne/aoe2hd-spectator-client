@@ -1,0 +1,5 @@
+starting: #f90
+streaming: #03f
+ready: #3c3
+error: #c00
+waiting: #3cc

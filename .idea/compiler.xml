@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="CompilerConfiguration">
+    <annotationProcessing>
+      <profile name="Maven default annotation processors profile" enabled="true">
+        <sourceOutputDir name="target/generated-sources/annotations" />
+        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
+        <outputRelativeToContentRoot value="true" />
+        <module name="aoe2hd-spectator-client" />
+        <module name="aoe2hdspectator" />
+        <module name="aoe2hdspectator-config" />
+      </profile>
+    </annotationProcessing>
+    <bytecodeTargetLevel target="1.8">
+      <module name="aoe2hd-spectator-client" target="1.8" />
+      <module name="aoe2hdspectator" target="1.8" />
+      <module name="aoe2hdspectator-config" target="1.8" />
+    </bytecodeTargetLevel>
+  </component>
+</project>

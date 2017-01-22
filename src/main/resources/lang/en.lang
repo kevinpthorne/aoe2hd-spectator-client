@@ -1,0 +1,14 @@
+action_upstream=Upstream
+action_downstream=Downstream
+action_settings=Settings
+action_exit=Exit
+
+notification_upstream_title=Upstream
+status_upstream_waiting=Waiting for game to start
+
+status_starting=Starting
+status_ready=Ready to Stream
+status_error=Error!
+status_waiting=Awaiting start
+status_upstreaming=Upstreaming
+status_downstreaming=Downstreaming
