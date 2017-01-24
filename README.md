@@ -34,4 +34,10 @@ Once this is stable, native executables/installations will be available. For now
 
 The first time it runs, it won't know where your Age2HD savegame directory is. Right-click the icon, click Settings, and then close the App. You should have a ```config.txt``` open. Change the ```save_game_directory``` and the ```relay_server``` to what you'd like. Restart app.
 
+## DISCLAIMER
 
+This is not only served AS-IS, but Microsoft, Ensemble Studios, Skybox, and whoever else you want to associate Age of Empires 2 with has nothing to do with these projects. Purely started by me, Kevin "echospot" Thorne.
+
+## License & Contributing
+
+NOTICE.md includes all licenses, mostly for libraries included (such as [PHP-Websockets](https://github.com/ghedipunk/PHP-Websockets), Java Websocket Libraries, etc). LICENSE.md licenses this under the Apache License 2.0. [This means you can contribute freely! Just tell everyone what you did and include previous licenses!](https://tldrlegal.com/license/apache-license-2.0-(apache-2.0))
