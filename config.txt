@@ -6,5 +6,5 @@ receive_filename=game-spectating
 downstream_auto_launch=true
 save_game_directory=C:\\Program Files (x86)\\Steam\\steamapps\\common\\Age2HD\\savegame
 password=
-relay_server=core.aptitekk.com:8082
+relay_server=localhost:8082
 upstream_notifications_enabled=false

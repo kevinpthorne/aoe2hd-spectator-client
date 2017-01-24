@@ -30,6 +30,8 @@ import java.util.logging.Logger;
  */
 public class Streamer implements Runnable {
 
+    private static final int UPLOAD_ERROR_CAP = 10;
+
     private Logger log = StreamingApp.log;
     private Heartbeat master;
 
@@ -73,21 +75,18 @@ public class Streamer implements Runnable {
     @Override
     public void run() {
         running = true;
-        while (running) {
+        //while (running) {
             try {
                 if (upstreaming) {
-                    master.setStatus(AppStatus.UPSTREAMING);
                     upstream();
                 } else {
-                    master.setStatus(AppStatus.DOWNSTREAMING);
                     downstream();
                 }
             } catch (InterruptedException | IOException | URISyntaxException e) {
                 e.printStackTrace();
                 running = false;
             }
-        }
-        master.setStatus(AppStatus.READY);
+        //}
         return;
     }
 
@@ -121,17 +120,21 @@ public class Streamer implements Runnable {
         byte[] buffer;// buffer for portion of data from connection
         byte[] data;
         synchronized (ios) {
-            while (errors < 5) {
+            while (errors < UPLOAD_ERROR_CAP) {
                 if (position < (256 * 1024)) { //mgz header information
                     buffer = new byte[256 * 1024];
                 } else {
                     buffer = new byte[4096];
                 }
                 if ((length = ios.read(buffer)) <= -1) {
-                    System.out.println("Buffering... [Attempt " + ++errors + "/5]");
+                    ++errors;
+                    if(errors > 2) {
+                        System.out.println("\nBuffering... [Attempt " + errors +"/" + UPLOAD_ERROR_CAP + "]");
+                    }
                     //Thread.sleep(1000);
                     ios.wait(1000);
                 } else {
+                    System.out.print(".");
                     data = Arrays.copyOf(buffer, length);
                     client.sendBinary(ByteBuffer.wrap(data));
                     position += length;
@@ -145,17 +148,18 @@ public class Streamer implements Runnable {
         client.addLifecycleListener(new WsLifecycleListener() {
             @Override
             public void onOpen(Session userSession) {
-                //pass
+                master.setStatus(AppStatus.UPSTREAMING);
             }
 
             @Override
             public void onClose(Session userSession, CloseReason reason) {
                 running = false;
+                master.setStatus(AppStatus.READY);
             }
 
             @Override
             public void onError(Throwable e) {
-                //pass
+                master.setStatus(AppStatus.ERROR);
             }
         });
         client.getUserSession().close();
@@ -186,7 +190,7 @@ public class Streamer implements Runnable {
                     } catch (FileAlreadyExistsException e) {
                         Files.write(Paths.get(config.getSaveGameDirectory(), config.getReceiveFilename() + ".aoe2record"), data, StandardOpenOption.APPEND);
                     }
-                    //System.out.println("\t" + clientEndPoint.received);
+                    System.out.print(".");
                     if (config.isAutoLaunch())
                         try {
                             Desktop.getDesktop().browse(new URI("steam://rungameid/221380"));
@@ -214,13 +218,16 @@ public class Streamer implements Runnable {
 //                } catch (Exception e) {
 //                    e.printStackTrace();
 //                }
+                master.setStatus(AppStatus.READY);
             }
 
             @Override
             public void onError(Throwable e) {
-                //pass
+                master.setStatus(AppStatus.ERROR);
             }
         });
+
+        client.sendText("start");
 
     }
 

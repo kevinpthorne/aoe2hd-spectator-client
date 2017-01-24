@@ -88,8 +88,8 @@ public class StreamingApp implements StreamingTray.TrayListener, Heartbeat {
                 }
                 updateStatus(AppStatus.WAITING);
 
-                watchLoop:
-                while (true) {
+                boolean watching = true;
+                while (watching) {
                     final WatchKey wk = watchService.take();
                     for (WatchEvent<?> event : wk.pollEvents()) {
                         final Path changed = (Path) event.context();
@@ -100,7 +100,8 @@ public class StreamingApp implements StreamingTray.TrayListener, Heartbeat {
                                     configLoader.getConfig(),
                                     StreamingApp.this);
                             streamer.run();
-                            break watchLoop;
+                            watching = false;
+                            break;
                         }
                     }
                     // reset the key
@@ -109,7 +110,7 @@ public class StreamingApp implements StreamingTray.TrayListener, Heartbeat {
                         log.warning("Key has been unregistered");
                     }
                 }
-                updateStatus(AppStatus.UPSTREAMING);
+                watchService.close();
             } catch (IOException e) {
                 updateStatus(AppStatus.ERROR);
                 e.printStackTrace();

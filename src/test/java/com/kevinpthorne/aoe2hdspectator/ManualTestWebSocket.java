@@ -29,7 +29,7 @@ public class ManualTestWebSocket {
 
         System.setProperty("java.net.preferIPv4Stack" , "true");
 
-        String host = "localhost:8080";
+        String host = "localhost:8082";
         if (args.length < 3) {
             if(args.length <= 1) {
                 String command = args[0];
@@ -67,12 +67,12 @@ public class ManualTestWebSocket {
                     System.err.println("File not found");
                     //TODO print help
                 }
-                System.out.println("-- Upstreaming " + file + " of echospot");
+                System.out.println("-- Upstreaming " + file + " of " + player);
                 upstream(file, player, host);
                 //becho();
             } else if (command.equalsIgnoreCase("downstream")) {
                 //downstream
-                System.out.println("-- Downstreaming " + file + " of echospot");
+                System.out.println("-- Downstreaming " + file + " of " + player);
                 downstream(file, player, host);
             } else {
                 System.err.println("Invalid Command");
@@ -201,7 +201,7 @@ public class ManualTestWebSocket {
         }
 
         clientEndPoint.getUserSession().close();
-
+        System.exit(0);
     }
 
     private static void downstream(String file, String player, String server) throws IOException, URISyntaxException, InterruptedException {
@@ -234,6 +234,7 @@ public class ManualTestWebSocket {
                     } catch (FileAlreadyExistsException e) {
                         Files.write(Paths.get(file + ".aoe2record"), data, StandardOpenOption.APPEND);
                     }
+                    System.out.print(".");
                     //System.out.println("\t" + clientEndPoint.received);
                 } catch (IOException e) {
                     e.printStackTrace();
@@ -256,6 +257,7 @@ public class ManualTestWebSocket {
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
+                System.exit(0);
             }
 
             @Override
@@ -263,6 +265,8 @@ public class ManualTestWebSocket {
                 //pass
             }
         });
+
+        clientEndPoint.sendText("start");
     }
 
     private static byte[] createChecksum(String filename) throws Exception {
