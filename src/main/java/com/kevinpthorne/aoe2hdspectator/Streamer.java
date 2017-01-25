@@ -1,5 +1,7 @@
 package com.kevinpthorne.aoe2hdspectator;
 
+import com.eclipsesource.json.Json;
+import com.eclipsesource.json.JsonObject;
 import com.kevinpthorne.aoe2hdspectator.config.AppStatus;
 import com.kevinpthorne.aoe2hdspectator.config.Config;
 import com.kevinpthorne.aoe2hdspectator.websocket.WebsocketClientEndpoint;
@@ -10,6 +12,7 @@ import javax.websocket.Session;
 import java.awt.Desktop;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -20,6 +23,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
+import java.security.MessageDigest;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -31,6 +35,7 @@ import java.util.logging.Logger;
 public class Streamer implements Runnable {
 
     private static final int UPLOAD_ERROR_CAP = 10;
+    private static final String CHECKSUM_ALGORITHM = "sha1";
 
     private Logger log = StreamingApp.log;
     private Heartbeat master;
@@ -76,16 +81,16 @@ public class Streamer implements Runnable {
     public void run() {
         running = true;
         //while (running) {
-            try {
-                if (upstreaming) {
-                    upstream();
-                } else {
-                    downstream();
-                }
-            } catch (InterruptedException | IOException | URISyntaxException e) {
-                e.printStackTrace();
-                running = false;
+        try {
+            if (upstreaming) {
+                upstream();
+            } else {
+                downstream();
             }
+        } catch (InterruptedException | IOException | URISyntaxException e) {
+            e.printStackTrace();
+            running = false;
+        }
         //}
         return;
     }
@@ -128,8 +133,8 @@ public class Streamer implements Runnable {
                 }
                 if ((length = ios.read(buffer)) <= -1) {
                     ++errors;
-                    if(errors > 2) {
-                        System.out.println("\nBuffering... [Attempt " + errors +"/" + UPLOAD_ERROR_CAP + "]");
+                    if (errors > 2) {
+                        System.out.println("\nBuffering... [Attempt " + errors + "/" + UPLOAD_ERROR_CAP + "]");
                     }
                     //Thread.sleep(1000);
                     ios.wait(1000);
@@ -169,17 +174,79 @@ public class Streamer implements Runnable {
         final WebsocketClientEndpoint client =
                 buildDownstream(config.getRelayServer(), uploading.toAbsolutePath().toString(), config.getUsername());
 
+        int maxLogWidth = 50;
+        final int[] currentWidth = {0};
+
+        final int[] attempts = {0};
+        int maxAttempts = 50;
+
         client.addMessageHandler(new WebsocketClientEndpoint.MessageHandler() {
             @Override
             public void handleText(String message, Session session) {
-                if (message.contains("error")) {
+                JsonObject json = Json.parse(message).asObject();
+                if (json.get("status") == null && json.get("action") != null
+                        && json.get("action").asString().equalsIgnoreCase("continue")
+                        && json.get("position") != null) {
                     try {
-                        client.getUserSession().close();
-                    } catch (IOException e) {
+                        Thread.sleep(10);
+                    } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
+                    client.sendText("{\"action\":\"pull\",\"position\":" + json.get("position").asInt() + "}");
+
+                } else if (json.get("status") == null && json.get("action") != null
+                        && json.get("action").asString().equalsIgnoreCase("checksum")) {
+                    try {
+                        String serverChecksum = json.get("value").asString();
+                        String clientChecksum = getChecksum(config.getReceiveFilename() + ".aoe2record", CHECKSUM_ALGORITHM);
+
+                        if (serverChecksum.equals(clientChecksum)) {
+                            System.out.println("File is good");
+                        } else {
+                            throw new Exception("Checksum mismatch");
+                        }
+                        client.getUserSession().close();
+                    } catch (Exception e) {
+                        System.err.println("\n\n");
+                        e.printStackTrace();
+                        try {
+                            client.getUserSession().close();
+                        } catch (IOException ignored) {
+                        }
+                    }
+                } else {
+                    String status = json.get("status").asString();
+
+                    if (status.equalsIgnoreCase("error")) {
+                        System.out.println("Error, pos: "
+                                + (json.get("position") != null ? json.get("position").asString() : "?"));
+                        try {
+                            client.getUserSession().close();
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    } else if (status.equalsIgnoreCase("eof")) {
+                        if (json.get("position") != null && ++attempts[0] <= maxAttempts) {
+                            currentWidth[0] = printProgress(true, maxLogWidth, currentWidth[0]);
+                            try {
+                                Thread.sleep(2000);
+                            } catch (InterruptedException e) {
+                                e.printStackTrace();
+                            }
+                            client.sendText("{\"action\":\"pull\",\"position\":" + json.get("position").asInt() + "}");
+                        } else {
+                            //give up
+                            client.sendText("{\"action\":\"" + CHECKSUM_ALGORITHM + "\"}");
+                            try {
+                                client.getUserSession().close();
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }
+                            master.setStatus(AppStatus.ERROR);
+
+                        }
+                    }
                 }
-                System.out.println(message);
             }
 
             @Override
@@ -190,7 +257,7 @@ public class Streamer implements Runnable {
                     } catch (FileAlreadyExistsException e) {
                         Files.write(Paths.get(config.getSaveGameDirectory(), config.getReceiveFilename() + ".aoe2record"), data, StandardOpenOption.APPEND);
                     }
-                    System.out.print(".");
+                    currentWidth[0] = printProgress(false, maxLogWidth, currentWidth[0]);
                     if (config.isAutoLaunch())
                         try {
                             Desktop.getDesktop().browse(new URI("steam://rungameid/221380"));
@@ -213,11 +280,6 @@ public class Streamer implements Runnable {
 
             @Override
             public void onClose(Session userSession, CloseReason reason) {
-//                try {
-//                    System.out.println(getMD5Checksum(file));
-//                } catch (Exception e) {
-//                    e.printStackTrace();
-//                }
                 master.setStatus(AppStatus.READY);
             }
 
@@ -227,8 +289,18 @@ public class Streamer implements Runnable {
             }
         });
 
-        client.sendText("start");
+        client.sendText("{\"action\":\"pull\",\"position\":0}");
+    }
 
+    private int printProgress(boolean isWait, int maxWidth, int currentWidth) {
+        if (currentWidth < maxWidth) {
+            System.out.print(isWait ? "#" : ".");
+            currentWidth++;
+        } else {
+            System.out.println(isWait ? "#" : ".");
+            currentWidth = 0;
+        }
+        return currentWidth;
     }
 
     private static WebsocketClientEndpoint buildClient(String server, String command, Map<String, String> queries)
@@ -263,5 +335,33 @@ public class Streamer implements Runnable {
     private static WebsocketClientEndpoint buildUpstream(String server, String filename, String player)
             throws UnsupportedEncodingException, URISyntaxException {
         return buildStream(server, filename, player, "upstream");
+    }
+
+    private static byte[] createChecksum(String filename, String algorithm) throws Exception {
+        InputStream fis = new FileInputStream(filename);
+
+        byte[] buffer = new byte[1024];
+        MessageDigest complete = MessageDigest.getInstance(algorithm.toUpperCase());
+        int numRead;
+
+        do {
+            numRead = fis.read(buffer);
+            if (numRead > 0) {
+                complete.update(buffer, 0, numRead);
+            }
+        } while (numRead != -1);
+
+        fis.close();
+        return complete.digest();
+    }
+
+    private static String getChecksum(String filename, String algorithm) throws Exception {
+        byte[] b = createChecksum(filename, algorithm);
+        String result = "";
+
+        for (int i = 0; i < b.length; i++) {
+            result += Integer.toString((b[i] & 0xff) + 0x100, 16).substring(1);
+        }
+        return result;
     }
 }

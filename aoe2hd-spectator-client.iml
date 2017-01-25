@@ -23,5 +23,6 @@
     <orderEntry type="library" name="Maven: me.kevinpthorne:java-dx9-overlay-api:0.1" level="project" />
     <orderEntry type="library" name="Maven: net.java.dev.jna:jna:4.2.2" level="project" />
     <orderEntry type="library" name="Maven: net.java.dev.jna:jna-platform:4.2.2" level="project" />
+    <orderEntry type="library" name="Maven: com.eclipsesource.minimal-json:minimal-json:0.9.4" level="project" />
   </component>
 </module>
