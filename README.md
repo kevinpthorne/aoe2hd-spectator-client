@@ -22,6 +22,16 @@ Age of Empires 2 saves the recording files as the game progresses. (This is why 
 
 ![DownStream](https://github.com/kevinpthorne/aoe2hd-spectator-server/blob/master/docs/graphics/Downstream.png)
 
+## Planned
+
+- [x] Streaming, *coined "Upstreaming"*
+- [ ] Spectating, *coined "Downstreaming"*
+  - [x] Core function - actually streaming the file
+  - [ ] In-game spectating status, using a [Direct3D Overlay](https://github.com/kevinpthorne/Java-DX9-Overlay-API)
+- [ ] Live stats
+  - [ ] Utilizing [recanalyst](https://github.com/goto-bus-stop/recanalyst) to report live stats, like the Voobly spectator dashboard
+- [ ] Spectator Chat
+
 ## Requirements
  
 At the moment, you'll need a fast hard drive to minimize load times. Other requirements:
