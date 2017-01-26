@@ -29,8 +29,8 @@ Age of Empires 2 saves the recording files as the game progresses. (This is why 
   - [x] Core function - actually streaming the file
   - [ ] Web front - where people can find games to spectate
   - [ ] In-game spectating status, using a [Direct3D Overlay](https://github.com/kevinpthorne/Java-DX9-Overlay-API)
-- [ ] Live stats
-  - [ ] Utilizing [recanalyst](https://github.com/goto-bus-stop/recanalyst) to report live stats, like the Voobly spectator dashboard
+- [ ] Live (sort of) stats
+  - [ ] Utilizing [recanalyst](https://github.com/goto-bus-stop/recanalyst) to report *some* game stats, like the Voobly spectator dashboard. This is limited, however, [due to the nature of recordings.](https://github.com/goto-bus-stop/recanalyst/issues/1)
 - [ ] Spectator Chat
 
 ## Requirements
