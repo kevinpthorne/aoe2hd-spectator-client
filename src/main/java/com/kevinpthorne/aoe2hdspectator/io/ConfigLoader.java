@@ -13,7 +13,7 @@ import java.util.Properties;
  */
 public class ConfigLoader {
 
-    public static final String CONFIG_FILENAME = "config.txt";
+    public static final String CONFIG_FILENAME = "config.ini";
 
     private Properties map;
 
@@ -39,8 +39,7 @@ public class ConfigLoader {
     private Config parseConfig(Properties map) throws IOException {
         return new Config(map.getProperty("language"),
                 map.getProperty("save_game_directory"),
-                map.getProperty("username"),
-                map.getProperty("password"),
+                map.getProperty("key"),
                 map.getProperty("receive_filename", "game-spectating"),
                 map.getProperty("relay_server"),
                 Boolean.parseBoolean(map.getProperty("upstream_notifications_enabled", "false")),
@@ -57,8 +56,7 @@ public class ConfigLoader {
         try (FileOutputStream output = new FileOutputStream(CONFIG_FILENAME)) {
             file.setProperty("language", config.getLanguage());
             file.setProperty("save_game_directory", config.getSaveGameDirectory());
-            file.setProperty("username", config.getUsername());
-            file.setProperty("password", config.getPassword());
+            file.setProperty("key", config.getKey());
             file.setProperty("receive_filename", config.getReceiveFilename());
             file.setProperty("relay_server", config.getRelayServer());
             file.setProperty("upstream_notifications_enabled", String.valueOf(config.isUpstreamNotifications()));

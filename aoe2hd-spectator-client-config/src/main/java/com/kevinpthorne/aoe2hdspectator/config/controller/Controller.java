@@ -53,7 +53,7 @@ public class Controller {
     public void bind(Config current) {
         this.currentConfig = current;
         try {
-            usernameField.setText(current.getUsername());
+            usernameField.setText(current.getKey());
         } catch (NullPointerException e) {
         }
         try {
@@ -102,7 +102,7 @@ public class Controller {
         //TODO more validation
 
         try {
-            currentConfig.setUsername(usernameField.getText());
+            currentConfig.setKey(usernameField.getText());
         } catch (NullPointerException e) {
         }
         try {

@@ -16,14 +16,13 @@ import java.util.Properties;
  */
 public class Config {
 
-    public static final String CONFIG_FILENAME = "config.txt";
+    public static final String CONFIG_FILENAME = "config.ini";
 
     private final StringProperty language;
 
     private final StringProperty savegameDirectory;
 
-    private final StringProperty username;
-    private final StringProperty password;
+    private final StringProperty key;
 
     private final StringProperty receiveFilename;
     private final StringProperty relayServer;
@@ -33,18 +32,17 @@ public class Config {
     private final BooleanProperty autoLaunch;
 
     public Config() {
-        this("en", "", "", "", "game-spectating", "live.aoe2.net", false, true, true);
+        this("en", "", "", "game-spectating", "live.aoe2.net", false, true, true);
     }
 
-    public Config(String language, String saveGameDir, String username, String password, String receiveFilename,
+    public Config(String language, String saveGameDir, String key, String receiveFilename,
                   String relayServer, boolean upstreamNotifications, boolean downstreamOverlay, boolean autoLaunch) {
 
         this.language = new SimpleStringProperty(language);
 
         this.savegameDirectory = new SimpleStringProperty(saveGameDir);
 
-        this.username = new SimpleStringProperty(username);
-        this.password = new SimpleStringProperty(password);
+        this.key = new SimpleStringProperty(key);
 
         this.receiveFilename = new SimpleStringProperty(receiveFilename);
         this.relayServer = new SimpleStringProperty(relayServer);
@@ -63,8 +61,7 @@ public class Config {
 
             return new Config(config.getProperty("language"),
                     config.getProperty("save_game_directory"),
-                    config.getProperty("username"),
-                    config.getProperty("password"),
+                    config.getProperty("key"),
                     config.getProperty("receive_filename", "game-spectating"),
                     config.getProperty("relay_server"),
                     Boolean.parseBoolean(config.getProperty("upstream_notifications_enabled", "false")),
@@ -78,8 +75,7 @@ public class Config {
         try (FileOutputStream output = new FileOutputStream(CONFIG_FILENAME)) {
             file.setProperty("language", config.getLanguage());
             file.setProperty("save_game_directory", config.getSaveGameDirectory());
-            file.setProperty("username", config.getUsername());
-            file.setProperty("password", config.getPassword());
+            file.setProperty("key", config.getKey());
             file.setProperty("receive_filename", config.getReceiveFilename());
             file.setProperty("relay_server", config.getRelayServer());
             file.setProperty("upstream_notifications_enabled", String.valueOf(config.isUpstreamNotifications()));
@@ -108,20 +104,12 @@ public class Config {
         this.savegameDirectory.set(savegameDirectory);
     }
 
-    public String getUsername() {
-        return username.get();
+    public String getKey() {
+        return key.get();
     }
 
-    public void setUsername(String username) {
-        this.username.set(username);
-    }
-
-    public String getPassword() {
-        return password.get();
-    }
-
-    public void setPassword(String password) {
-        this.password.set(password);
+    public void setKey(String key) {
+        this.key.set(key);
     }
 
     public String getRelayServer() {

@@ -46,8 +46,133 @@
 
     </dependencies>
 
+    <profiles>
+
+        <profile>
+            <id>debug</id>
+
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>com.akathist.maven.plugins.launch4j</groupId>
+                        <artifactId>launch4j-maven-plugin</artifactId>
+                        <version>1.7.15</version>
+                        <executions>
+                            <execution>
+                                <id>l4j-gui</id>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>launch4j</goal>
+                                </goals>
+                                <configuration>
+                                    <icon>src/main/resources/icons/aoe2hdspectator.ico</icon>
+                                    <headerType>console</headerType>
+                                    <outfile>target/aoe2hdspectator-c.exe</outfile>
+                                    <jar>target/aoe2hdspectator-0.1-jar-with-dependencies.jar</jar>
+                                    <errTitle>aoe2hdspectator-c</errTitle>
+                                    <classPath>
+                                        <mainClass>com.kevinpthorne.aoe2hdspectator.StreamingApp</mainClass>
+                                    </classPath>
+                                    <jre>
+                                        <minVersion>1.8.0</minVersion>
+                                    </jre>
+                                    <versionInfo>
+                                        <fileVersion>0.0.0.1</fileVersion>
+                                        <txtFileVersion>0.0.0.1</txtFileVersion>
+                                        <fileDescription>Age of Empires 2 - Spectator Client</fileDescription>
+                                        <copyright>Copyright 2017 Kevin "echospot" Thorne</copyright>
+                                        <productVersion>0.0.0.1</productVersion>
+                                        <txtProductVersion>0.0.0.1</txtProductVersion>
+                                        <productName>Age of Empires 2 - Spectator</productName>
+                                        <internalName>aoe2hdspectator</internalName>
+                                        <originalFilename>aoe2hdspectator-c.exe</originalFilename>
+                                    </versionInfo>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+
+                    <plugin>
+                        <artifactId>maven-assembly-plugin</artifactId>
+                        <configuration>
+                            <archive>
+                                <manifest>
+                                    <mainClass>com.kevinpthorne.aoe2hdspectator.StreamingApp</mainClass>
+                                </manifest>
+                            </archive>
+                            <descriptorRefs>
+                                <descriptorRef>jar-with-dependencies</descriptorRef>
+                            </descriptorRefs>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+
+        </profile>
+
+    </profiles>
+
     <build>
         <plugins>
+            <plugin>
+                <groupId>com.akathist.maven.plugins.launch4j</groupId>
+                <artifactId>launch4j-maven-plugin</artifactId>
+                <version>1.7.15</version>
+                <executions>
+                    <execution>
+                        <id>l4j-gui</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>launch4j</goal>
+                        </goals>
+                        <configuration>
+                            <icon>src/main/resources/icons/aoe2hdspectator.ico</icon>
+                            <headerType>gui</headerType>
+                            <outfile>target/aoe2hdspectator.exe</outfile>
+                            <jar>target/aoe2hdspectator-0.1-jar-with-dependencies.jar</jar>
+                            <errTitle>aoe2hdspectator</errTitle>
+                            <classPath>
+                                <mainClass>com.kevinpthorne.aoe2hdspectator.StreamingApp</mainClass>
+                            </classPath>
+                            <jre>
+                                <minVersion>1.8.0</minVersion>
+                            </jre>
+                            <versionInfo>
+                                <fileVersion>0.0.0.1</fileVersion>
+                                <txtFileVersion>0.0.0.1</txtFileVersion>
+                                <fileDescription>Age of Empires 2 - Spectator Client</fileDescription>
+                                <copyright>Copyright 2017 Kevin "echospot" Thorne</copyright>
+                                <productVersion>0.0.0.1</productVersion>
+                                <txtProductVersion>0.0.0.1</txtProductVersion>
+                                <productName>Age of Empires 2 - Spectator</productName>
+                                <internalName>aoe2hdspectator</internalName>
+                                <originalFilename>aoe2hdspectator.exe</originalFilename>
+                            </versionInfo>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>sh.tak.appbundler</groupId>
+                <artifactId>appbundle-maven-plugin</artifactId>
+                <version>1.2.0</version>
+                <configuration>
+                    <mainClass>com.kevinpthorne.aoe2hdspectator.StreamingApp</mainClass>
+                    <generateDiskImageFile>true</generateDiskImageFile>
+                    <jvmVersion>1.8</jvmVersion>
+                    <iconFile>src/main/resources/icons/aoe2hdspectator.icns</iconFile>
+                </configuration>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>bundle</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
             <plugin>
                 <artifactId>maven-assembly-plugin</artifactId>
                 <configuration>

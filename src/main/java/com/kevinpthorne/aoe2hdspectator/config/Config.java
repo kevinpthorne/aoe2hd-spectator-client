@@ -9,8 +9,7 @@ public class Config {
 
     private String saveGameDirectory;
 
-    private String username;
-    private String password;
+    private String key;
 
     private String receiveFilename;
     private String relayServer;
@@ -21,18 +20,17 @@ public class Config {
     private boolean autoLaunch;
 
     public Config() {
-        this("en", "", "", "", "game-spectating", "live.aoe2.net", false, true, true);
+        this("en", "", "", "game-spectating", "live.aoe2.net", false, true, true);
     }
 
-    public Config(String language, String saveGameDir, String username, String password, String receiveFilename, String relayServer,
+    public Config(String language, String saveGameDir, String key, String receiveFilename, String relayServer,
                   boolean upstreamNotifications, boolean downstreamOverlay, boolean autoLaunch) {
 
         this.language = language;
 
         this.saveGameDirectory = saveGameDir;
 
-        this.username = username;
-        this.password = password;
+        this.key = key;
 
         this.receiveFilename = receiveFilename;
         this.relayServer = relayServer;
@@ -59,20 +57,12 @@ public class Config {
         this.saveGameDirectory = savegameDirectory;
     }
 
-    public String getUsername() {
-        return username;
+    public String getKey() {
+        return key;
     }
 
-    public void setUsername(String username) {
-        this.username = username;
-    }
-
-    public String getPassword() {
-        return password;
-    }
-
-    public void setPassword(String password) {
-        this.password = password;
+    public void setKey(String key) {
+        this.key = key;
     }
 
     public String getReceiveFilename() {

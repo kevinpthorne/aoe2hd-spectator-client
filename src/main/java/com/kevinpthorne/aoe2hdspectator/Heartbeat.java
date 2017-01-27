@@ -7,6 +7,10 @@ import com.kevinpthorne.aoe2hdspectator.config.AppStatus;
  */
 public interface Heartbeat {
 
-    void setStatus(AppStatus status);
+    void updateStatus(AppStatus status);
+
+    void setArguments(String[] args);
+
+    void downstream(String gameId, String player);
 
 }

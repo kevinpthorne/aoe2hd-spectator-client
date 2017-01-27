@@ -10,6 +10,7 @@ import com.kevinpthorne.aoe2hdspectator.websocket.WsLifecycleListener;
 import javax.websocket.CloseReason;
 import javax.websocket.Session;
 import java.awt.Desktop;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -22,6 +23,7 @@ import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
 import java.security.MessageDigest;
 import java.util.Arrays;
@@ -39,17 +41,15 @@ public class Streamer implements Runnable {
 
     private Logger log = StreamingApp.log;
     private Heartbeat master;
-
-    private final boolean upstreaming;
     private final Config config;
 
+    private final boolean upstreaming;
     private Path uploading;
 
     private String gameToReceive;
     private String playerToRequest;
 
-    private WebsocketClientEndpoint client;
-    private boolean running;
+    private volatile boolean running;
 
     /**
      * Upstreaming is assumed here
@@ -67,11 +67,14 @@ public class Streamer implements Runnable {
     /**
      * Downstreaming is assumed here
      *
-     * @param filename
+     * @param gameId
      * @param player
      * @param config
      */
-    public Streamer(String filename, String player, Config config, Heartbeat master) {
+    public Streamer(String gameId, String player, Config config, Heartbeat master) {
+        this.gameToReceive = gameId;
+        this.playerToRequest = player;
+
         this.master = master;
         this.config = config;
         upstreaming = false;
@@ -89,15 +92,17 @@ public class Streamer implements Runnable {
             }
         } catch (InterruptedException | IOException | URISyntaxException e) {
             e.printStackTrace();
+            master.updateStatus(AppStatus.ERROR);
             running = false;
         }
         //}
-        return;
     }
 
     private void upstream() throws IOException, InterruptedException, URISyntaxException {
         final WebsocketClientEndpoint client =
-                buildUpstream(config.getRelayServer(), uploading.getFileName().toString(), config.getUsername());
+                buildUpstream(config.getRelayServer(), uploading.getFileName().toString(), config.getKey());
+
+        master.updateStatus(AppStatus.UPSTREAMING);
 
         client.addMessageHandler(new WebsocketClientEndpoint.MessageHandler() {
             @Override
@@ -107,6 +112,10 @@ public class Streamer implements Runnable {
                         client.getUserSession().close();
                     } catch (IOException e) {
                         e.printStackTrace();
+                    }
+                } else {
+                    if (message.substring(0, 1).equalsIgnoreCase("g")) {
+                        log.info("Game ID: " + message);
                     }
                 }
             }
@@ -153,18 +162,18 @@ public class Streamer implements Runnable {
         client.addLifecycleListener(new WsLifecycleListener() {
             @Override
             public void onOpen(Session userSession) {
-                master.setStatus(AppStatus.UPSTREAMING);
+                master.updateStatus(AppStatus.UPSTREAMING);
             }
 
             @Override
             public void onClose(Session userSession, CloseReason reason) {
                 running = false;
-                master.setStatus(AppStatus.READY);
+                master.updateStatus(AppStatus.READY);
             }
 
             @Override
             public void onError(Throwable e) {
-                master.setStatus(AppStatus.ERROR);
+                master.updateStatus(AppStatus.ERROR);
             }
         });
         client.getUserSession().close();
@@ -172,7 +181,7 @@ public class Streamer implements Runnable {
 
     private void downstream() throws UnsupportedEncodingException, URISyntaxException {
         final WebsocketClientEndpoint client =
-                buildDownstream(config.getRelayServer(), uploading.toAbsolutePath().toString(), config.getUsername());
+                buildDownstream(config.getRelayServer(), gameToReceive, playerToRequest);
 
         int maxLogWidth = 50;
         final int[] currentWidth = {0};
@@ -198,12 +207,12 @@ public class Streamer implements Runnable {
                         && json.get("action").asString().equalsIgnoreCase("checksum")) {
                     try {
                         String serverChecksum = json.get("value").asString();
-                        String clientChecksum = getChecksum(config.getReceiveFilename() + ".aoe2record", CHECKSUM_ALGORITHM);
+                        String clientChecksum = getChecksum(config.getSaveGameDirectory() + "/" + config.getReceiveFilename() + ".aoe2record", CHECKSUM_ALGORITHM);
 
                         if (serverChecksum.equals(clientChecksum)) {
                             System.out.println("File is good");
                         } else {
-                            throw new Exception("Checksum mismatch");
+                            client.onError(new Exception("Checksum mismatch"));
                         }
                         client.getUserSession().close();
                     } catch (Exception e) {
@@ -224,6 +233,7 @@ public class Streamer implements Runnable {
                             client.getUserSession().close();
                         } catch (IOException e) {
                             e.printStackTrace();
+                            client.onError(e);
                         }
                     } else if (status.equalsIgnoreCase("eof")) {
                         if (json.get("position") != null && ++attempts[0] <= maxAttempts) {
@@ -232,6 +242,7 @@ public class Streamer implements Runnable {
                                 Thread.sleep(2000);
                             } catch (InterruptedException e) {
                                 e.printStackTrace();
+                                client.onError(e);
                             }
                             client.sendText("{\"action\":\"pull\",\"position\":" + json.get("position").asInt() + "}");
                         } else {
@@ -242,8 +253,6 @@ public class Streamer implements Runnable {
                             } catch (IOException e) {
                                 e.printStackTrace();
                             }
-                            master.setStatus(AppStatus.ERROR);
-
                         }
                     }
                 }
@@ -258,16 +267,10 @@ public class Streamer implements Runnable {
                         Files.write(Paths.get(config.getSaveGameDirectory(), config.getReceiveFilename() + ".aoe2record"), data, StandardOpenOption.APPEND);
                     }
                     currentWidth[0] = printProgress(false, maxLogWidth, currentWidth[0]);
-                    if (config.isAutoLaunch())
-                        try {
-                            Desktop.getDesktop().browse(new URI("steam://rungameid/221380"));
-                        } catch (URISyntaxException e) {
-                            log.severe("Autolaunch failed");
-                            e.printStackTrace();
-                        }
                 } catch (IOException e) {
                     e.printStackTrace();
                     client.sendText("error");
+                    client.onError(e);
                 }
             }
         });
@@ -275,21 +278,41 @@ public class Streamer implements Runnable {
         client.addLifecycleListener(new WsLifecycleListener() {
             @Override
             public void onOpen(Session userSession) {
-                //pass
+                if (config.isAutoLaunch())
+                    try {
+                        Desktop.getDesktop().browse(new URI("steam://rungameid/221380"));
+                    } catch (URISyntaxException | IOException e) {
+                        log.severe("Autolaunch failed");
+                        e.printStackTrace();
+                    }
             }
 
             @Override
             public void onClose(Session userSession, CloseReason reason) {
-                master.setStatus(AppStatus.READY);
+                try {
+                    Files.move(Paths.get(config.getSaveGameDirectory(), config.getReceiveFilename() + ".aoe2record"),
+                            Paths.get(config.getSaveGameDirectory(), playerToRequest + "." + gameToReceive + ".aoe2record"),
+                            StandardCopyOption.ATOMIC_MOVE);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                master.updateStatus(AppStatus.READY);
             }
 
             @Override
             public void onError(Throwable e) {
-                master.setStatus(AppStatus.ERROR);
+                try {
+                    Files.move(Paths.get(config.getSaveGameDirectory(), config.getReceiveFilename() + ".aoe2record"),
+                            Paths.get(config.getSaveGameDirectory(), playerToRequest + "." + gameToReceive + ".error.aoe2record"),
+                            StandardCopyOption.ATOMIC_MOVE);
+                } catch (IOException ignored) {
+                }
+                master.updateStatus(AppStatus.ERROR);
             }
         });
 
         client.sendText("{\"action\":\"pull\",\"position\":0}");
+        client.onOpen(client.getUserSession());
     }
 
     private int printProgress(boolean isWait, int maxWidth, int currentWidth) {
@@ -319,22 +342,23 @@ public class Streamer implements Runnable {
         return new WebsocketClientEndpoint(new URI(path));
     }
 
-    private static WebsocketClientEndpoint buildStream(String server, String filename, String player, String command)
+    private static WebsocketClientEndpoint buildStream(String server, String filename, String identifierType,
+                                                       String identifier, String command)
             throws UnsupportedEncodingException, URISyntaxException {
         Map<String, String> queries = new HashMap<>();
         queries.put("filename", String.valueOf(filename));
-        queries.put("player", player);
+        queries.put(identifierType, identifier);
         return buildClient(server, command, queries);
     }
 
     private static WebsocketClientEndpoint buildDownstream(String server, String filename, String player)
             throws UnsupportedEncodingException, URISyntaxException {
-        return buildStream(server, filename, player, "downstream");
+        return buildStream(server, filename, "player", player, "downstream");
     }
 
-    private static WebsocketClientEndpoint buildUpstream(String server, String filename, String player)
+    private static WebsocketClientEndpoint buildUpstream(String server, String filename, String key)
             throws UnsupportedEncodingException, URISyntaxException {
-        return buildStream(server, filename, player, "upstream");
+        return buildStream(server, filename, "key", key, "upstream");
     }
 
     private static byte[] createChecksum(String filename, String algorithm) throws Exception {
