@@ -4,7 +4,7 @@ Age of Empires 2 HD - Spectator Client
 
 This is an *unofficial* companion app that streams AoE2 HD games live, with the help of the [Relay Server](https://github.com/kevinpthorne/aoe2hd-spectator-server)
 
-Forenote, currently broken, please don't try to run yet!
+Note -- there is no release yet. **This is because AoE2HD seems to cache however much you have of the recording when you start the game.** As of right now, this solution cannot work until it's changed.
 
 ## Overview
 
